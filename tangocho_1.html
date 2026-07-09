@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>単語帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F3EA;
+    --paper-line:#E4DCC9;
+    --ink:#22304A;
+    --ink-soft:#4A5B7C;
+    --red:#C0433A;
+    --red-soft:#E9C9C4;
+    --metal:#B9B2A2;
+    --metal-dark:#8f8878;
+    --green:#5B8266;
+    --green-soft:#DCE7DD;
+    --shadow: rgba(34,48,74,0.18);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(#F7F3EA, #F7F3EA 27px, var(--paper-line) 28px);
+    background-color:var(--paper);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .app{
+    max-width:520px;
+    margin:0 auto;
+  }
+  /* リング綴じヘッダー */
+  .binder{
+    position:relative;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 10px 24px var(--shadow);
+    padding:26px 22px 18px;
+    margin-bottom:22px;
+    border:1px solid var(--paper-line);
+  }
+  .rings{
+    position:absolute;
+    top:-14px; left:0; right:0;
+    display:flex;
+    justify-content:space-evenly;
+    padding:0 30px;
+  }
+  .ring{
+    width:22px; height:22px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fff, var(--metal) 60%, var(--metal-dark) 100%);
+    box-shadow:0 2px 3px rgba(0,0,0,0.25), inset 0 0 0 3px var(--paper);
+  }
+  h1{
+    font-family:'Klee One', cursive;
+    font-size:30px;
+    margin:6px 0 2px;
+    letter-spacing:2px;
+  }
+  .sub{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .stats{
+    display:flex;
+    gap:14px;
+    margin-top:12px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .stats b{ color:var(--ink); font-size:15px; display:block; font-family:'Klee One',cursive;}
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:10px 6px;
+    border-radius:10px 10px 0 0;
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-bottom:none;
+    color:var(--ink-soft);
+    cursor:pointer;
+    font-size:14px;
+    font-weight:500;
+    transition:all .15s;
+  }
+  .tab.active{
+    background:var(--ink);
+    color:#fff;
+  }
+  .panel{
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:0 10px 10px 10px;
+    padding:20px;
+    box-shadow:0 6px 16px var(--shadow);
+    min-height:280px;
+  }
+
+  /* 学習カード */
+  .study-empty{
+    text-align:center;
+    padding:40px 10px;
+    color:var(--ink-soft);
+  }
+  .study-empty .big{ font-size:40px; margin-bottom:10px;}
+  .progressbar{
+    height:6px;
+    background:var(--paper-line);
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:18px;
+  }
+  .progressbar > div{
+    height:100%;
+    background:var(--red);
+    transition:width .3s;
+  }
+  .card-scene{
+    perspective:1200px;
+    margin:6px 0 20px;
+  }
+  .card{
+    position:relative;
+    height:220px;
+    transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.4,.2,.2,1);
+    cursor:pointer;
+  }
+  .card.flipped{ transform:rotateY(180deg); }
+  .face{
+    position:absolute; inset:0;
+    backface-visibility:hidden;
+    border:2px solid var(--ink);
+    border-radius:12px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:22px;
+    background:#fff;
+  }
+  .face.front::before{
+    content:'';
+    position:absolute; top:10px; left:16px; right:16px; bottom:10px;
+    border:1px dashed var(--paper-line);
+    border-radius:8px;
+    pointer-events:none;
+  }
+  .face.back{
+    transform:rotateY(180deg);
+    background:var(--paper);
+  }
+  .word{
+    font-family:'Klee One', cursive;
+    font-size:28px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .hint{
+    margin-top:14px;
+    font-size:11px;
+    color:var(--metal-dark);
+    letter-spacing:1px;
+  }
+  .meaning{
+    font-size:20px;
+    font-weight:700;
+    color:var(--ink);
+    margin-bottom:10px;
+  }
+  .example{
+    font-size:13px;
+    color:var(--ink-soft);
+    font-style:italic;
+    line-height:1.5;
+  }
+  .study-controls{
+    display:flex;
+    gap:10px;
+  }
+  .study-controls button{
+    flex:1;
+    padding:14px 0;
+    border:none;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    color:#fff;
+  }
+  .btn-unknown{ background:var(--red); }
+  .btn-known{ background:var(--green); }
+  .toolrow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .linklike{
+    background:none; border:none; color:var(--ink-soft);
+    text-decoration:underline; cursor:pointer; font-size:12px; font-family:inherit;
+    padding:0;
+  }
+  .dirswitch{
+    display:flex;
+    gap:0;
+    margin-bottom:16px;
+    border:1px solid var(--ink);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .dirbtn{
+    flex:1;
+    padding:9px 4px;
+    border:none;
+    background:#fff;
+    color:var(--ink);
+    font-size:12px;
+    font-weight:500;
+    font-family:inherit;
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .dirbtn + .dirbtn{ border-left:1px solid var(--ink); }
+  .dirbtn.active{
+    background:var(--ink);
+    color:#fff;
+  }
+  .checkline{ display:flex; align-items:center; gap:6px; }
+
+  /* 一覧 */
+  .search{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    font-size:14px;
+    margin-bottom:14px;
+    font-family:inherit;
+    background:var(--paper);
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 4px;
+    border-bottom:1px dashed var(--paper-line);
+  }
+  .row:last-child{ border-bottom:none; }
+  .row .tag{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--metal);
+    flex-shrink:0;
+  }
+  .row .tag.known{ background:var(--green); }
+  .row .main{ flex:1; min-width:0; }
+  .row .w{ font-weight:700; font-size:15px; }
+  .row .m{ font-size:12px; color:var(--ink-soft); }
+  .row .actions{ display:flex; gap:6px; }
+  .iconbtn{
+    border:none; background:var(--paper); width:30px; height:30px; border-radius:8px;
+    cursor:pointer; font-size:14px; color:var(--ink-soft);
+  }
+  .iconbtn:hover{ background:var(--paper-line); }
+  .empty{
+    text-align:center; color:var(--ink-soft); padding:40px 10px; font-size:13px;
+  }
+
+  /* 追加 */
+  label{
+    display:block; font-size:12px; color:var(--ink-soft); margin:12px 0 5px;
+  }
+  input[type=text], textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    font-size:14px;
+    font-family:inherit;
+    background:var(--paper);
+    resize:vertical;
+  }
+  .addbtn{
+    margin-top:18px;
+    width:100%;
+    padding:13px 0;
+    border:none;
+    border-radius:10px;
+    background:var(--ink);
+    color:#fff;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .toast{
+    position:fixed;
+    bottom:24px; left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:#fff;
+    padding:10px 20px;
+    border-radius:20px;
+    font-size:13px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s;
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="binder">
+    <div class="rings">
+      <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+      <div class="ring"></div><div class="ring"></div>
+    </div>
+    <h1>単語帳</h1>
+    <div class="sub">タップしてめくる、あなただけの暗記ノート</div>
+    <div class="stats">
+      <div><b id="statTotal">0</b>単語</div>
+      <div><b id="statKnown">0</b>覚えた</div>
+      <div><b id="statUnknown">0</b>復習中</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="study">学習</div>
+    <div class="tab" data-tab="list">一覧</div>
+    <div class="tab" data-tab="add">追加</div>
+  </div>
+
+  <div class="panel" id="panel-study">
+    <div class="toolrow">
+      <label class="checkline"><input type="checkbox" id="onlyUnknown"> 復習中のみ</label>
+      <button class="linklike" id="shuffleBtn">シャッフル</button>
+    </div>
+    <div class="dirswitch">
+      <button class="dirbtn active" data-dir="en2ja" id="dirEn2Ja">英語 → 日本語</button>
+      <button class="dirbtn" data-dir="ja2en" id="dirJa2En">日本語 → 英語</button>
+    </div>
+    <div class="progressbar"><div id="progressFill" style="width:0%"></div></div>
+    <div id="studyArea"></div>
+  </div>
+
+  <div class="panel" id="panel-list" style="display:none">
+    <input class="search" id="searchInput" type="text" placeholder="単語・意味で検索">
+    <div id="listArea"></div>
+  </div>
+
+  <div class="panel" id="panel-add" style="display:none">
+    <div id="addFormArea">
+      <label>英単語・フレーズ</label>
+      <input type="text" id="fWord" placeholder="例: keep out">
+      <label>意味</label>
+      <input type="text" id="fMeaning" placeholder="例: ～を防ぐ、遮る">
+      <label>例文（任意）</label>
+      <textarea id="fExample" rows="2" placeholder="例: This jacket keeps out the wind."></textarea>
+      <button class="addbtn" id="submitBtn">単語帳に追加する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'tangocho-words';
+let words = [];
+let studyQueue = [];
+let studyIndex = 0;
+let flipped = false;
+let editingId = null;
+let studyDirection = 'en2ja'; // 'en2ja' または 'ja2en'
+const DIR_KEY = 'tangocho-direction';
+
+const seed = [
+  ["keep out","～を防ぐ、遮る","This jacket keeps out the wind."],
+  ["As you get older...","年齢を重ねるにつれて","As you get older, your priorities change."],
+  ["not... anymore","もはや～ではない","I'm not a student anymore."],
+  ["feel embarrassed to do","～するのが恥ずかしい","I felt embarrassed to ask."],
+  ["objective","客観的な","That's an objective view."],
+  ["subjective","主観的な","That's just your subjective opinion."],
+  ["be confident about","～に自信がある","I'm confident about my English."],
+  ["It's fine if...","～なら問題ない","It's fine if you're late."],
+  ["It's about ～ing","大事なのは～すること","It's about being honest."],
+  ["appropriately","適切に","Dress appropriately."],
+  ["dress appropriately","適切な服装をする","You should dress appropriately for work."],
+  ["for your age","年齢相応に","You look young for your age."],
+  ["middle-aged","中年の","He's a middle-aged man."],
+  ["distressed jeans","ダメージジーンズ","I don't wear distressed jeans anymore."],
+  ["look dirty","汚く見える","Those shoes look dirty."],
+  ["make a good impression","良い印象を与える","Smile to make a good impression."],
+  ["give a good impression","良い印象を与える","His clothes give a good impression."]
+];
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+async function loadWords(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      words = JSON.parse(res.value);
+      return;
+    }
+  }catch(e){ /* not found yet */ }
+  // 初回: シードデータを投入
+  words = seed.map(([word,meaning,example])=>({
+    id: uid(), word, meaning, example, known:false, createdAt: Date.now()
+  }));
+  await saveWords();
+}
+
+async function saveWords(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(words), false);
+  }catch(e){
+    console.error('保存に失敗しました', e);
+    showToast('保存に失敗しました');
+  }
+}
+
+function renderStats(){
+  document.getElementById('statTotal').textContent = words.length;
+  document.getElementById('statKnown').textContent = words.filter(w=>w.known).length;
+  document.getElementById('statUnknown').textContent = words.filter(w=>!w.known).length;
+}
+
+function buildQueue(){
+  const onlyUnknown = document.getElementById('onlyUnknown').checked;
+  studyQueue = words.filter(w => onlyUnknown ? !w.known : true);
+  studyIndex = 0;
+  flipped = false;
+}
+
+function shuffleQueue(){
+  for(let i=studyQueue.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [studyQueue[i],studyQueue[j]] = [studyQueue[j],studyQueue[i]];
+  }
+  studyIndex = 0;
+  flipped = false;
+  renderStudy();
+}
+
+function renderStudy(){
+  const area = document.getElementById('studyArea');
+  const fill = document.getElementById('progressFill');
+  if(studyQueue.length === 0){
+    fill.style.width = '0%';
+    area.innerHTML = `<div class="study-empty"><div class="big">🗂️</div>まだカードがありません。<br>「追加」タブから単語を登録しましょう。</div>`;
+    return;
+  }
+  if(studyIndex >= studyQueue.length){
+    fill.style.width = '100%';
+    area.innerHTML = `<div class="study-empty"><div class="big">✅</div>このセットは一周しました！<br><button class="addbtn" style="margin-top:16px" onclick="restartQueue()">もう一度めくる</button></div>`;
+    return;
+  }
+  fill.style.width = ((studyIndex)/studyQueue.length*100) + '%';
+  const w = studyQueue[studyIndex];
+  const isEn2Ja = studyDirection === 'en2ja';
+  const frontText = isEn2Ja ? w.word : w.meaning;
+  const frontHint = isEn2Ja ? 'タップして意味を見る' : 'タップして英語を見る';
+  const backTitle = isEn2Ja ? w.meaning : w.word;
+  // 日→英のときは例文の答え(英単語)がバレないよう、例文は裏面のみ表示のまま
+  area.innerHTML = `
+    <div class="card-scene">
+      <div class="card ${flipped?'flipped':''}" id="flipCard">
+        <div class="face front">
+          <div class="word">${escapeHtml(frontText)}</div>
+          <div class="hint">${frontHint} (${studyIndex+1} / ${studyQueue.length})</div>
+        </div>
+        <div class="face back">
+          <div class="meaning">${escapeHtml(backTitle)}</div>
+          ${w.example ? `<div class="example">${escapeHtml(w.example)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="study-controls">
+      <button class="btn-unknown" onclick="markAndNext(false)">まだ覚えてない</button>
+      <button class="btn-known" onclick="markAndNext(true)">覚えた</button>
+    </div>
+  `;
+  document.getElementById('flipCard').addEventListener('click', ()=>{
+    flipped = !flipped;
+    document.getElementById('flipCard').classList.toggle('flipped');
+  });
+}
+
+function restartQueue(){
+  buildQueue();
+  renderStudy();
+}
+
+async function markAndNext(isKnown){
+  const w = studyQueue[studyIndex];
+  const target = words.find(x=>x.id===w.id);
+  if(target){ target.known = isKnown; }
+  await saveWords();
+  renderStats();
+  renderList();
+  studyIndex++;
+  flipped = false;
+  renderStudy();
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderList(){
+  const area = document.getElementById('listArea');
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = words.filter(w =>
+    !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
+  ).sort((a,b)=>b.createdAt-a.createdAt);
+
+  if(filtered.length === 0){
+    area.innerHTML = `<div class="empty">該当する単語がありません。</div>`;
+    return;
+  }
+  area.innerHTML = filtered.map(w=>`
+    <div class="row">
+      <div class="tag ${w.known?'known':''}"></div>
+      <div class="main">
+        <div class="w">${escapeHtml(w.word)}</div>
+        <div class="m">${escapeHtml(w.meaning)}</div>
+      </div>
+      <div class="actions">
+        <button class="iconbtn" title="編集" onclick="editWord('${w.id}')">✎</button>
+        <button class="iconbtn" title="削除" onclick="deleteWord('${w.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editWord(id){
+  const w = words.find(x=>x.id===id);
+  if(!w) return;
+  editingId = id;
+  document.querySelector('.tab[data-tab="add"]').click();
+  document.getElementById('fWord').value = w.word;
+  document.getElementById('fMeaning').value = w.meaning;
+  document.getElementById('fExample').value = w.example || '';
+  document.getElementById('submitBtn').textContent = '変更を保存する';
+}
+
+async function deleteWord(id){
+  words = words.filter(w=>w.id!==id);
+  await saveWords();
+  renderStats();
+  renderList();
+  buildQueue();
+  renderStudy();
+  showToast('削除しました');
+}
+
+async function submitForm(){
+  const word = document.getElementById('fWord').value.trim();
+  const meaning = document.getElementById('fMeaning').value.trim();
+  const example = document.getElementById('fExample').value.trim();
+  if(!word || !meaning){
+    showToast('英単語と意味は必須です');
+    return;
+  }
+  if(editingId){
+    const target = words.find(w=>w.id===editingId);
+    if(target){
+      target.word = word; target.meaning = meaning; target.example = example;
+    }
+    editingId = null;
+    document.getElementById('submitBtn').textContent = '単語帳に追加する';
+    showToast('更新しました');
+  }else{
+    words.push({ id:uid(), word, meaning, example, known:false, createdAt: Date.now() });
+    showToast('追加しました');
+  }
+  await saveWords();
+  document.getElementById('fWord').value = '';
+  document.getElementById('fMeaning').value = '';
+  document.getElementById('fExample').value = '';
+  renderStats();
+  renderList();
+  buildQueue();
+  renderStudy();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.getElementById('panel-study').style.display = name==='study' ? 'block':'none';
+  document.getElementById('panel-list').style.display = name==='list' ? 'block':'none';
+  document.getElementById('panel-add').style.display = name==='add' ? 'block':'none';
+}
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>switchTab(t.dataset.tab));
+});
+document.getElementById('shuffleBtn').addEventListener('click', shuffleQueue);
+document.getElementById('dirEn2Ja').addEventListener('click', ()=>setDirection('en2ja'));
+document.getElementById('dirJa2En').addEventListener('click', ()=>setDirection('ja2en'));
+
+async function setDirection(dir){
+  if(studyDirection === dir) return;
+  studyDirection = dir;
+  document.getElementById('dirEn2Ja').classList.toggle('active', dir==='en2ja');
+  document.getElementById('dirJa2En').classList.toggle('active', dir==='ja2en');
+  flipped = false;
+  renderStudy();
+  try{ await window.storage.set(DIR_KEY, dir, false); }catch(e){ /* 保存失敗は致命的ではない */ }
+}
+
+async function loadDirection(){
+  try{
+    const res = await window.storage.get(DIR_KEY, false);
+    if(res && res.value){
+      studyDirection = res.value;
+      document.getElementById('dirEn2Ja').classList.toggle('active', studyDirection==='en2ja');
+      document.getElementById('dirJa2En').classList.toggle('active', studyDirection==='ja2en');
+    }
+  }catch(e){ /* 未設定 */ }
+}
+document.getElementById('onlyUnknown').addEventListener('change', ()=>{ buildQueue(); renderStudy(); });
+document.getElementById('searchInput').addEventListener('input', renderList);
+document.getElementById('submitBtn').addEventListener('click', submitForm);
+
+(async function init(){
+  await loadWords();
+  await loadDirection();
+  renderStats();
+  buildQueue();
+  renderStudy();
+  renderList();
+})();
+</script>
+</body>
+</html>
